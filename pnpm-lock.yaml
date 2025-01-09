@@ -292,8 +292,8 @@ importers:
         specifier: workspace:*
         version: link:../unhead
       unplugin-vue-components:
-        specifier: ^0.27.5
-        version: 0.27.5(@babel/parser@7.26.3)(@nuxt/kit@3.15.1(magicast@0.3.5)(rollup@4.29.1))(rollup@4.29.1)(vue@3.5.13(typescript@5.7.2))
+        specifier: ^28.0.0
+        version: 28.0.0(@babel/parser@7.26.3)(@nuxt/kit@3.15.1(magicast@0.3.5)(rollup@4.29.1))(rollup@4.29.1)(vue@3.5.13(typescript@5.7.2))
 
   packages/shared:
     dependencies:
@@ -6509,19 +6509,6 @@ packages:
       '@nuxt/kit':
         optional: true
       '@vueuse/core':
-        optional: true
-
-  unplugin-vue-components@0.27.5:
-    resolution: {integrity: sha512-m9j4goBeNwXyNN8oZHHxvIIYiG8FQ9UfmKWeNllpDvhU7btKNNELGPt+o3mckQKuPwrE7e0PvCsx+IWuDSD9Vg==}
-    engines: {node: '>=14'}
-    peerDependencies:
-      '@babel/parser': ^7.15.8
-      '@nuxt/kit': ^3.2.2
-      vue: ^3.5.13
-    peerDependenciesMeta:
-      '@babel/parser':
-        optional: true
-      '@nuxt/kit':
         optional: true
 
   unplugin-vue-components@28.0.0:
@@ -15352,26 +15339,6 @@ snapshots:
       '@vueuse/core': 12.3.0(typescript@5.7.2)
     transitivePeerDependencies:
       - rollup
-
-  unplugin-vue-components@0.27.5(@babel/parser@7.26.3)(@nuxt/kit@3.15.1(magicast@0.3.5)(rollup@4.29.1))(rollup@4.29.1)(vue@3.5.13(typescript@5.7.2)):
-    dependencies:
-      '@antfu/utils': 0.7.10
-      '@rollup/pluginutils': 5.1.4(rollup@4.29.1)
-      chokidar: 3.6.0
-      debug: 4.4.0(supports-color@9.4.0)
-      fast-glob: 3.3.3
-      local-pkg: 0.5.1
-      magic-string: 0.30.17
-      minimatch: 9.0.5
-      mlly: 1.7.3
-      unplugin: 1.16.0
-      vue: 3.5.13(typescript@5.7.2)
-    optionalDependencies:
-      '@babel/parser': 7.26.3
-      '@nuxt/kit': 3.15.1(magicast@0.3.5)(rollup@4.29.1)
-    transitivePeerDependencies:
-      - rollup
-      - supports-color
 
   unplugin-vue-components@28.0.0(@babel/parser@7.26.3)(@nuxt/kit@3.15.1(magicast@0.3.5)(rollup@4.29.1))(rollup@4.29.1)(vue@3.5.13(typescript@5.7.2)):
     dependencies:
