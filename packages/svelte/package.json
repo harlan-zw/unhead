@@ -61,7 +61,7 @@
     "export:sizes": "npx export-size . -r"
   },
   "peerDependencies": {
-    "svelte": ">=5"
+    "svelte": ">=5.20.2"
   },
   "build": {
     "external": [
