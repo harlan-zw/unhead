@@ -37,7 +37,7 @@
     "fs-extra": "^11.3.0",
     "jsdom": "^26.0.0",
     "rollup-plugin-analyzer": "^4.0.0",
-    "typescript": "5.7.3",
+    "typescript": "5.8.2",
     "unbuild": "^3.5.0",
     "utility-types": "^3.11.0",
     "vitest": "^3.0.7",
@@ -55,7 +55,7 @@
     ]
   },
   "resolutions": {
-    "typescript": "5.7.3",
+    "typescript": "5.8.2",
     "@unhead/addons": "workspace:*",
     "@unhead/angular": "workspace:*",
     "@unhead/dom": "workspace:*",
