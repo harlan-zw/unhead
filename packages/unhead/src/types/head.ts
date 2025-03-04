@@ -80,7 +80,7 @@ export interface ActiveHeadEntry<Input> {
    *
    * Will first clear any side effects for previous input.
    */
-  patch: (input: Input) => void
+  patch: (input: Input, force?: boolean) => void
   /**
    * Dispose the entry, removing it from the active head.
    *
@@ -91,6 +91,10 @@ export interface ActiveHeadEntry<Input> {
    * @internal
    */
   _poll: (rm?: boolean) => void
+  /**
+   * Hook side effect persisted for deduping and clean up.
+   */
+  _h?: () => void
 }
 
 export type PropResolver = (key: string, value: any, tag?: HeadTag) => any

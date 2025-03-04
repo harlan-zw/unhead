@@ -73,17 +73,24 @@ export function createUnhead<T = ResolvableHead>(resolvedOptions: CreateHeadOpti
           if (entries.delete(_i)) {
             _._poll(true)
           }
+          _._h?.()
         },
         // a patch is the same as creating a new entry, just a nice DX
-        patch(input) {
+        patch(input, force = false) {
           if (!options.mode || (options.mode === 'server' && ssr) || (options.mode === 'client' && !ssr)) {
+            if (!ssr && !force && !head._dom) {
+              // dom has not been rendered we need to queue the patch so that removals will work
+              _._h?.()
+              _._h = head.hooks.hookOnce('dom:rendered', () => _.patch(input, true))
+              return
+            }
             inst.input = input
             entries.set(_i, inst)
             _._poll()
           }
         },
       }
-      _.patch(input)
+      _.patch(input, true)
       return _
     },
     async resolveTags() {

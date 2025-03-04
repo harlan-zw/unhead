@@ -21,6 +21,8 @@ describe('unheadProvider', () => {
       getByText('Update').click()
     })
 
+    await new Promise(resolve => setTimeout(resolve, 10))
+
     expect(getByText('Updated')).toBeDefined()
     const res = await renderSSRHead(head)
     expect(res.headTags).toEqual(`<title>Updated</title>`)
