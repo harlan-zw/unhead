@@ -98,8 +98,6 @@
     }
   },
   "dependencies": {
-    "defu": "^6.1.4",
-    "ohash": "^2.0.11",
     "ufo": "^1.6.1",
     "unhead": "workspace:*"
   },
