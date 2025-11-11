@@ -56,6 +56,7 @@ const merge = createDefu((object, key, value) => {
 })
 
 export function createSchemaOrgGraph(): SchemaOrgGraph {
+  const nodeIndex = new Map<Id, SchemaOrgNode>()
   const ctx: SchemaOrgGraph = {
     find<T extends Thing>(id: Id | string) {
       // if it starts with # we can assume we match any fragment
@@ -72,6 +73,13 @@ export function createSchemaOrgGraph(): SchemaOrgGraph {
           .split('/')[0]
       }
       const key = resolver(id) as Id
+      // For simple cases without complex resolvers, use O(1) Map lookup
+      if (id[0] !== '#' && id[0] !== '/') {
+        const node = nodeIndex.get(key)
+        if (node)
+          return node as unknown as T
+      }
+      // Fallback to O(n) array search for complex resolver cases
       return ctx.nodes
         .filter(n => !!n['@id'])
         .find(n => resolver(n['@id'] as Id) === key) as unknown as T | null
@@ -80,6 +88,9 @@ export function createSchemaOrgGraph(): SchemaOrgGraph {
       asArray(input).forEach((node) => {
         const registeredNode = node as SchemaOrgNode
         ctx.nodes.push(registeredNode)
+        // Index nodes with @id for O(1) lookups
+        if (registeredNode['@id'])
+          nodeIndex.set(registeredNode['@id'] as Id, registeredNode)
       })
     },
     resolveGraph(meta: MetaInput) {
@@ -108,8 +119,14 @@ export function createSchemaOrgGraph(): SchemaOrgGraph {
       // Update ctx.nodes with deduped array (required for resolveRelation lookups)
       ctx.nodes = Object.values(dedupedNodes)
 
-      // Process relations for each deduped node
+      // Rebuild index and process relations in a single pass
+      nodeIndex.clear()
       ctx.nodes.forEach((node) => {
+        // Rebuild index after deduplication
+        if (node['@id'])
+          nodeIndex.set(node['@id'] as Id, node)
+
+        // Process relations for each deduped node
         // handle images for all nodes
         if (node.image && typeof node.image === 'string') {
           node.image = resolveRelation(node.image, ctx, imageResolver, {
