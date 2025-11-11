@@ -32,7 +32,7 @@ export function createSchemaOrgGraph(): SchemaOrgGraph {
       else if (id[0] === '/') {
         resolver = (s: string) => s
           .replace(/(https?:)?\/\//, '')
-          .split('/')[0)
+          .split('/')[0]
       }
       const key = resolver(id) as Id
       // For simple cases without complex resolvers, use O(1) Map lookup
