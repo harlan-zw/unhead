@@ -14,7 +14,7 @@ export function idReference<T extends Thing>(node: T | string) {
 export function resolvableDateToDate(val: Date | string) {
   try {
     const date = val instanceof Date ? val : new Date(Date.parse(val))
-    return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
   }
   // not too fussed if it can't be resolved, this is on the user to validate
   catch {}
@@ -137,9 +137,9 @@ export function stripEmptyProperties(obj: any) {
     if (obj[k] && typeof obj[k] === 'object') {
       // avoid walking vue reactivity
       if (obj[k].__v_isReadonly || obj[k].__v_isRef)
-        return
+        continue
       stripEmptyProperties(obj[k])
-      return
+      continue
     }
     if (obj[k] === '' || obj[k] === null || obj[k] === undefined)
       delete obj[k]
