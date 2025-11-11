@@ -1,5 +1,4 @@
 import type { Arrayable, Id, MetaInput, ResolvedMeta, SchemaOrgNode, Thing } from '../types'
-import { createDefu } from 'defu'
 import { imageResolver } from '../nodes'
 import { asArray, hashCode as hash, resolveAsGraphKey } from '../utils'
 import { resolveMeta, resolveNode, resolveNodeId, resolveRelation } from './resolve'
@@ -33,27 +32,44 @@ function uniqueBy<T>(array: T[], predicate: (value: T, index: number, array: T[]
   return Object.values(groupBy(array, predicate)).map(a => a[a.length - 1])
 }
 
-const merge = createDefu((object, key, value) => {
-  // dedupe merge arrays
-  if (Array.isArray(object[key])) {
-    if (Array.isArray(value)) {
-      // unique set
-      // make a record with hash'es as keys for [...object[key], ...value]
+function merge(target: any, source: any): any {
+  if (!source || typeof source !== 'object')
+    return target
+
+  for (const key in source) {
+    if (!Object.prototype.hasOwnProperty.call(source, key))
+      continue
+
+    const sourceValue = source[key]
+    const targetValue = target[key]
+
+    // Handle array merging with deduplication
+    if (Array.isArray(targetValue) && Array.isArray(sourceValue)) {
+      // unique set using hash
       const map = {} as Record<string, any>
-      for (const item of [...object[key], ...value])
+      for (const item of [...targetValue, ...sourceValue])
         map[hash(item)] = item
-      // @ts-expect-error untyped
-      object[key] = Object.values(map)
-      if (key === 'itemListElement') {
-        // @ts-expect-error untyped
-        object[key] = [...uniqueBy(object[key], item => item.position)]
-      }
-      return true
+      target[key] = Object.values(map)
+
+      // Special handling for itemListElement
+      if (key === 'itemListElement')
+        target[key] = [...uniqueBy(target[key], item => item.position)]
     }
-    object[key] = merge(object[key], Array.isArray(value) ? value : [value])
-    return true
+    else if (Array.isArray(targetValue)) {
+      target[key] = merge(targetValue, Array.isArray(sourceValue) ? sourceValue : [sourceValue])
+    }
+    else if (targetValue && typeof targetValue === 'object' && sourceValue && typeof sourceValue === 'object') {
+      // Recursively merge objects
+      target[key] = merge(targetValue, sourceValue)
+    }
+    else if (sourceValue !== undefined) {
+      // Source value takes precedence
+      target[key] = sourceValue
+    }
   }
-})
+
+  return target
+}
 
 export function createSchemaOrgGraph(): SchemaOrgGraph {
   const nodeIndex = new Map<Id, SchemaOrgNode>()
