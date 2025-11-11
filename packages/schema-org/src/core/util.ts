@@ -1,6 +1,5 @@
 import type { Id, SchemaOrgNode } from '../types'
-import { createDefu } from 'defu'
-import { hash } from 'ohash'
+import { hashCode as hash } from '../utils'
 import { resolveAsGraphKey } from '../utils'
 
 function groupBy<T>(array: T[], predicate: (value: T, index: number, array: T[]) => string) {
@@ -18,27 +17,60 @@ function uniqueBy<T>(array: T[], predicate: (value: T, index: number, array: T[]
   return Object.values(groupBy(array, predicate)).map(a => a[a.length - 1])
 }
 
-const merge = createDefu((object, key, value) => {
-  // dedupe merge arrays
-  if (Array.isArray(object[key])) {
-    if (Array.isArray(value)) {
-      // unique set
-      // make a record with hash'es as keys for [...object[key], ...value]
+/**
+ * Custom merge function with array deduplication logic
+ * Merges source into target, with target taking precedence for non-array values
+ */
+function merge(target: any, source: any): any {
+  // Handle primitives
+  if (typeof target !== 'object' || target === null) {
+    return target
+  }
+  if (typeof source !== 'object' || source === null) {
+    return target
+  }
+
+  // Handle arrays - target array takes precedence but we don't merge arrays at top level
+  if (Array.isArray(target)) {
+    return target
+  }
+
+  // Merge objects
+  const result = { ...target }
+
+  for (const key in source) {
+    if (!(key in result)) {
+      // Key doesn't exist in target, copy from source
+      result[key] = source[key]
+    }
+    else if (Array.isArray(result[key]) && Array.isArray(source[key])) {
+      // Both are arrays - dedupe merge
       const map = {} as Record<string, any>
-      for (const item of [...object[key], ...value])
+      for (const item of [...result[key], ...source[key]]) {
         map[hash(item)] = item
+      }
       // @ts-expect-error untyped
-      object[key] = Object.values(map)
+      result[key] = Object.values(map)
+
+      // Special handling for itemListElement
       if (key === 'itemListElement') {
         // @ts-expect-error untyped
-        object[key] = [...uniqueBy(object[key], item => item.position)]
+        result[key] = [...uniqueBy(result[key], item => item.position)]
       }
-      return true
     }
-    object[key] = merge(object[key], Array.isArray(value) ? value : [value])
-    return true
+    else if (Array.isArray(result[key]) && !Array.isArray(source[key])) {
+      // Target is array, source is not - merge recursively
+      result[key] = merge(result[key], [source[key]])
+    }
+    else if (typeof result[key] === 'object' && result[key] !== null && typeof source[key] === 'object' && source[key] !== null && !Array.isArray(result[key]) && !Array.isArray(source[key])) {
+      // Both are objects - merge recursively
+      result[key] = merge(result[key], source[key])
+    }
+    // else: target value takes precedence
   }
-})
+
+  return result
+}
 
 /**
  * Dedupe, flatten and a collection of nodes. Will also sort node keys and remove meta keys.
