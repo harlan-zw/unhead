@@ -1,6 +1,5 @@
 import type { SchemaOrgGraph } from './core/graph'
 import type { MetaInput, ResolvedMeta } from './types'
-import { defu } from 'defu'
 import { defineHeadPlugin, TemplateParamsPlugin } from 'unhead/plugins'
 import { processTemplateParams } from 'unhead/utils'
 import {
@@ -12,6 +11,19 @@ import { loadResolver } from './resolver'
 export interface PluginSchemaOrgOptions {
   minify?: boolean
   trailingSlash?: boolean
+}
+
+/**
+ * Simple object merge that doesn't override existing properties
+ */
+function simpleMerge(target: Record<string, any>, source: Record<string, any>): Record<string, any> {
+  const result = { ...target }
+  for (const key in source) {
+    if (!(key in result)) {
+      result[key] = source[key]
+    }
+  }
+  return result
 }
 
 export function UnheadSchemaOrg(options?: PluginSchemaOrgOptions) {
@@ -130,7 +142,7 @@ export function SchemaOrgUnheadPlugin(config: MetaInput, meta: () => Partial<Met
                 continue
               }
               // merge props on to first node and delete
-              ctx.tags[firstNodeKey].props = defu(ctx.tags[firstNodeKey].props, tag.props)
+              ctx.tags[firstNodeKey].props = simpleMerge(ctx.tags[firstNodeKey].props, tag.props)
               delete ctx.tags[firstNodeKey].props.nodes
               // @ts-expect-error untyped
               ctx.tags[k] = false
