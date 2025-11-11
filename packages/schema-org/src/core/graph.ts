@@ -1,8 +1,9 @@
 import type { Arrayable, Id, MetaInput, ResolvedMeta, SchemaOrgNode, Thing } from '../types'
+import { createDefu } from 'defu'
 import { imageResolver } from '../nodes'
-import { asArray, resolveAsGraphKey } from '../utils'
+import { asArray, hashCode as hash, resolveAsGraphKey } from '../utils'
 import { resolveMeta, resolveNode, resolveNodeId, resolveRelation } from './resolve'
-import { dedupeNodes, normaliseNodes } from './util'
+import { normaliseNodes } from './util'
 
 export interface SchemaOrgGraph {
   nodes: SchemaOrgNode[]
@@ -16,6 +17,43 @@ const baseRelationNodes = [
   'translationOfWork',
   'workTranslation',
 ] as const
+
+function groupBy<T>(array: T[], predicate: (value: T, index: number, array: T[]) => string) {
+  return array.reduce((acc, value, index, array) => {
+    const key = predicate(value, index, array)
+    if (!acc[key])
+      acc[key] = []
+    acc[key].push(value)
+    return acc
+  }, {} as { [key: string]: T[] })
+}
+
+function uniqueBy<T>(array: T[], predicate: (value: T, index: number, array: T[]) => string) {
+  // get last item
+  return Object.values(groupBy(array, predicate)).map(a => a[a.length - 1])
+}
+
+const merge = createDefu((object, key, value) => {
+  // dedupe merge arrays
+  if (Array.isArray(object[key])) {
+    if (Array.isArray(value)) {
+      // unique set
+      // make a record with hash'es as keys for [...object[key], ...value]
+      const map = {} as Record<string, any>
+      for (const item of [...object[key], ...value])
+        map[hash(item)] = item
+      // @ts-expect-error untyped
+      object[key] = Object.values(map)
+      if (key === 'itemListElement') {
+        // @ts-expect-error untyped
+        object[key] = [...uniqueBy(object[key], item => item.position)]
+      }
+      return true
+    }
+    object[key] = merge(object[key], Array.isArray(value) ? value : [value])
+    return true
+  }
+})
 
 export function createSchemaOrgGraph(): SchemaOrgGraph {
   const ctx: SchemaOrgGraph = {
@@ -46,6 +84,8 @@ export function createSchemaOrgGraph(): SchemaOrgGraph {
     },
     resolveGraph(meta: MetaInput) {
       ctx.meta = resolveMeta({ ...meta })
+
+      // Pass 1: Resolve nodes and IDs
       ctx.nodes
         .forEach((node, key) => {
           const resolver = node._resolver
@@ -53,25 +93,38 @@ export function createSchemaOrgGraph(): SchemaOrgGraph {
           node = resolveNodeId(node, ctx, resolver, true)
           ctx.nodes[key] = node
         })
-      ctx.nodes = dedupeNodes(ctx.nodes)
 
-      ctx.nodes
-        .forEach((node) => {
-          // handle images for all nodes
-          if (node.image && typeof node.image === 'string') {
-            node.image = resolveRelation(node.image, ctx, imageResolver, {
-              root: true,
-            })
-          }
-          baseRelationNodes.forEach((k) => {
-            node[k] = resolveRelation(node[k], ctx)
+      // Pass 2: Dedupe and process relations (combined to reduce iterations)
+      // Inline dedupe logic to avoid separate iteration
+      const dedupedNodes: Record<Id, SchemaOrgNode> = {}
+      for (const node of ctx.nodes) {
+        const nodeKey = resolveAsGraphKey(node['@id'] || hash(node)) as Id
+        if (dedupedNodes[nodeKey] && node._dedupeStrategy !== 'replace')
+          dedupedNodes[nodeKey] = merge(node, dedupedNodes[nodeKey]) as SchemaOrgNode
+        else
+          dedupedNodes[nodeKey] = node
+      }
+
+      // Update ctx.nodes with deduped array (required for resolveRelation lookups)
+      ctx.nodes = Object.values(dedupedNodes)
+
+      // Process relations for each deduped node
+      ctx.nodes.forEach((node) => {
+        // handle images for all nodes
+        if (node.image && typeof node.image === 'string') {
+          node.image = resolveRelation(node.image, ctx, imageResolver, {
+            root: true,
           })
-          if (node._resolver?.resolveRootNode)
-            node._resolver.resolveRootNode(node, ctx)
-
-          // node is resolved, no longer need resolver
-          delete node._resolver
+        }
+        baseRelationNodes.forEach((k) => {
+          node[k] = resolveRelation(node[k], ctx)
         })
+        if (node._resolver?.resolveRootNode)
+          node._resolver.resolveRootNode(node, ctx)
+
+        // node is resolved, no longer need resolver
+        delete node._resolver
+      })
 
       return normaliseNodes(ctx.nodes)
     },
